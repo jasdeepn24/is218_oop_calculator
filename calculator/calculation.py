@@ -1,8 +1,21 @@
-class Add:
+from abc import ABC, abstractmethod
 
-    def __init__(self, a, b):
+class Calculation(ABC):
+    def __init__(self, a, b: float) -> None:
         self.a = a
         self.b = b
 
-    def get_result(self):
+    @abstractmethod
+    def get_result(self) -> float:
+        """Return the result of the calculation."""
+
+class Add(Calculation):
+    def get_result(self) -> float:
         return self.a + self.b
+    
+
+class Subtract(Calculation):
+    def get_result(self) -> float:
+        return self.a - self.b
+    
+    
