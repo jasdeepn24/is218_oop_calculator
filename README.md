@@ -26,6 +26,9 @@ Install the required packages:
 python -m pip install -r requirements.txt
 ```
 
+On macOS or Linux, activate the virtual environment using source .venv/bin/activate. Make sure the virtual environment is active before installing dependencies or running tests.
+
+
 ## Running the Calculator
 
 ```bash
