@@ -1,4 +1,5 @@
-from calculator.factory import CalculationFactory
+from calculator.cli import run
 
-print(CalculationFactory.create("add", 2, 3).get_result())
-print(CalculationFactory.create("power", 3, exponent=4).get_result())
+
+if __name__ == "__main__":
+    run()

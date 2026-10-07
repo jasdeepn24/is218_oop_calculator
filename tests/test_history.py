@@ -4,6 +4,8 @@ from calculator.calculation import Calculation
 from calculator.history import History
 from calculator.operations import Operations
 
+from calculator.session import CalculatorSession
+
 
 def test_history_copy_protects_collection_membership():
     history = History()
@@ -43,3 +45,22 @@ def test_clear_history():
     history.clear()
 
     assert history.get_history() == []
+
+
+
+def test_sessions_have_independent_history():
+    first = CalculatorSession()
+    second = CalculatorSession()
+
+    first.calculate(
+        Calculation(
+            [2, 3],
+            Operations.add,
+        )
+    )
+
+    assert second.get_history() == []
+
+    first.clear()
+
+    assert first.get_history() == []
