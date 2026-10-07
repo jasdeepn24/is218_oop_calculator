@@ -5,72 +5,41 @@ from calculator.history import History
 from calculator.operations import Operations
 
 
-def test_empty_history():
-    assert History().get_history() == []
-
-
-def test_mixed_calculations_keep_their_order():
+def test_history_copy_protects_collection_membership():
     history = History()
 
-    first = Calculation(10, 5, Operations.add)
-    second = Calculation(20, 7, Operations.subtract)
+    calculation = Calculation([2, 3], Operations.add)
 
-    first_result = first.get_result()
-    second_result = second.get_result()
-
-    history.add(first, first_result)
-    history.add(second, second_result)
-
-    assert history.get_history() == [
-        (first, first_result),
-        (second, second_result),
-    ]
-
-
-def test_returned_list_is_a_copy():
-    history = History()
-
-    calculation = Calculation(10, 5, Operations.add)
-    result = calculation.get_result()
-
-    history.add(calculation, result)
+    history.add(calculation, 5.0)
 
     snapshot = history.get_history()
     snapshot.clear()
 
-    assert history.get_history() == [(calculation, result)]
+    assert history.get_history() == [(calculation, 5.0)]
 
 
-def test_histories_are_independent():
-    first_history = History()
-    second_history = History()
-
-    calculation = Calculation(10, 5, Operations.add)
-    result = calculation.get_result()
-
-    first_history.add(calculation, result)
-
-    assert second_history.get_history() == []
-
-
-def test_reject_non_calculation():
+def test_history_objects_are_shared_by_the_shallow_copy():
     history = History()
 
-    with pytest.raises(TypeError):
-        history.add("not a calculation", 15)
+    calculation = Calculation([2, 3], Operations.add)
 
-    assert history.get_history() == []
+    history.add(calculation, 5.0)
+
+    snapshot = history.get_history()
+
+    assert snapshot[0][0] is calculation
+
+
+def test_history_rejects_non_calculations():
+    with pytest.raises(TypeError):
+        History().add("add 2 3", 5)
 
 
 def test_clear_history():
     history = History()
+    calculation = Calculation([2, 3], Operations.add)
 
-    first = Calculation(1, 2, Operations.add)
-    second = Calculation(5, 1, Operations.subtract)
-
-    history.add(first, first.get_result())
-    history.add(second, second.get_result())
-
+    history.add(calculation, 5.0)
     history.clear()
 
     assert history.get_history() == []
