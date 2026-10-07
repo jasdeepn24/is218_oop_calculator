@@ -1,14 +1,7 @@
 import runpy
 
-import pytest
 
-
-def test_main(monkeypatch, capsys):
-    def raise_eof(_):
-        raise EOFError
-
-    monkeypatch.setattr("builtins.input", raise_eof)
-
+def test_main(capsys):
     runpy.run_module("calculator", run_name="__main__")
 
-    assert "Goodbye!" in capsys.readouterr().out
+    assert capsys.readouterr().out.strip() == "5.0"

@@ -1,3 +1,4 @@
-from calculator.cli import run
+from calculator.factory import CalculationFactory
 
-run()
+
+print(CalculationFactory.create("add", 2, 3).get_result())
