@@ -1,37 +1,39 @@
-
 from math import isfinite
 
-from calculator.calculation import Add, Calculation, Subtract
+from calculator.calculation import Calculation
 from calculator.history import History
+from calculator.operations import Operations
 
 
 HELP = """Commands:
   add       Add two numbers
   subtract  Subtract the second number from the first
+  multiply  Multiply two numbers
+  divide    Divide the first number by the second
   history   Show this session's calculations
-  remove    Remove a calculation by its displayed number
+  clear     Clear calculation history
   help      Show available commands
   exit      Exit the calculator"""
 
 
-def describe(calculation: Calculation) -> str:
+def describe(calculation: Calculation, result: float) -> str:
     return (
-        f"{type(calculation).__name__}: "
-        f"{calculation.a:g}, {calculation.b:g} = {calculation.get_result():g}"
+        f"{calculation.operation.__name__}: "
+        f"{calculation.a:g}, {calculation.b:g} = {result:g}"
     )
 
 
 def show_history(history: History) -> None:
-    calculations = history.get_history()
+    entries = history.get_history()
 
-    if not calculations:
+    if not entries:
         print("No calculations in history.")
         return
 
     print("Calculation History\n")
 
-    for number, calculation in enumerate(calculations, start=1):
-        print(f"{number}. {describe(calculation)}")
+    for number, (calculation, result) in enumerate(entries, start=1):
+        print(f"{number}. {describe(calculation, result)}")
 
 
 def read_number(prompt: str) -> float:
@@ -45,7 +47,13 @@ def read_number(prompt: str) -> float:
 
 def run() -> None:
     history = History()
-    operations = {"add": Add, "subtract": Subtract}
+
+    operations = {
+        "add": Operations.add,
+        "subtract": Operations.subtract,
+        "multiply": Operations.multiply,
+        "divide": Operations.divide,
+    }
 
     print('OOP Calculator\n\nType "help" for commands.')
 
@@ -61,42 +69,23 @@ def run() -> None:
                     a = read_number("First number: ")
                     b = read_number("Second number: ")
 
-                    operation_class = operations[command]
-                    calculation = operation_class(a, b)
-
+                    operation = operations[command]
+                    calculation = Calculation(a, b, operation)
                     result = calculation.get_result()
 
-                    if not isfinite(result):
-                        raise ValueError("Result is outside the supported range.")
-
-                except ValueError:
-                    print("Invalid number or result. Please use finite numbers.")
+                except (ValueError, ZeroDivisionError):
+                    print("Invalid number or result. Please use valid finite numbers.")
                     continue
 
-                history.add(calculation)
+                history.add(calculation, result)
                 print(f"Result: {result:g}")
 
             elif command == "history":
                 show_history(history)
 
-            elif command == "remove":
-                show_history(history)
-
-                if not history.get_history():
-                    continue
-
-                try:
-                    number = int(input("Enter calculation number to remove: "))
-                    removed = history.remove(number - 1)
-
-                except ValueError:
-                    print("Please enter a whole calculation number.")
-
-                except IndexError:
-                    print("Calculation does not exist.")
-
-                else:
-                    print(f"Removed: {describe(removed)}")
+            elif command == "clear":
+                history.clear()
+                print("History cleared.")
 
             elif command == "help":
                 print(HELP)

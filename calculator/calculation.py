@@ -1,21 +1,20 @@
-from abc import ABC, abstractmethod
+from math import isfinite
 
-class Calculation(ABC):
-    def __init__(self, a, b: float) -> None:
-        self.a = a
-        self.b = b
+from calculator.validation import numeric_values
 
-    @abstractmethod
-    def get_result(self) -> float:
-        """Return the result of the calculation."""
 
-class Add(Calculation):
-    def get_result(self) -> float:
-        return self.a + self.b
-    
+class Calculation:
+    def __init__(self, a, b, operation):
+        numbers = numeric_values([a, b])
 
-class Subtract(Calculation):
-    def get_result(self) -> float:
-        return self.a - self.b
-    
-    
+        self.a = numbers[0]
+        self.b = numbers[1]
+        self.operation = operation
+
+    def get_result(self):
+        result = float(self.operation(self.a, self.b))
+
+        if not isfinite(result):
+            raise ValueError("Result is outside the supported range.")
+
+        return result

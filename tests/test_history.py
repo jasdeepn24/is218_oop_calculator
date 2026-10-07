@@ -1,7 +1,8 @@
 import pytest
 
-from calculator.calculation import Add, Subtract
+from calculator.calculation import Calculation
 from calculator.history import History
+from calculator.operations import Operations
 
 
 def test_empty_history():
@@ -10,108 +11,66 @@ def test_empty_history():
 
 def test_mixed_calculations_keep_their_order():
     history = History()
-    first = Add(10, 5)
-    second = Subtract(20, 7)
 
-    history.add(first)
-    history.add(second)
+    first = Calculation(10, 5, Operations.add)
+    second = Calculation(20, 7, Operations.subtract)
 
-    assert history.get_history() == [first, second]
+    first_result = first.get_result()
+    second_result = second.get_result()
+
+    history.add(first, first_result)
+    history.add(second, second_result)
+
+    assert history.get_history() == [
+        (first, first_result),
+        (second, second_result),
+    ]
 
 
 def test_returned_list_is_a_copy():
     history = History()
-    calculation = Add(10, 5)
-    history.add(calculation)
+
+    calculation = Calculation(10, 5, Operations.add)
+    result = calculation.get_result()
+
+    history.add(calculation, result)
 
     snapshot = history.get_history()
     snapshot.clear()
 
-    assert history.get_history() == [calculation]
+    assert history.get_history() == [(calculation, result)]
 
 
-def test_remove_returns_the_selected_object():
-    history = History()
-    first = Add(10,5)
-    second = Subtract(20,7)
+def test_histories_are_independent():
+    first_history = History()
+    second_history = History()
 
-    history.add(first)
-    history.add(second)
+    calculation = Calculation(10, 5, Operations.add)
+    result = calculation.get_result()
 
-    assert history.remove(0) is first
-    assert history.get_history() == [second]
+    first_history.add(calculation, result)
 
-    assert history.remove(0) is second
-    assert history.get_history() == []
-
-
-def test_invalid_removal_preserves_entries():
-    history = History()
-    calculation = Add(10, 5)
-    history.add(calculation)
-
-    for invalid_index in [-1, 1, 99]:
-        with pytest.raises(IndexError):
-            history.remove(invalid_index)
-
-        assert history.get_history() == [calculation]
-
-    
-def test_histories_are_indepenent():
-    first = History()
-    second = History()
-
-    first.add(Add(10, 5))
-
-    assert second.get_history() == []
+    assert second_history.get_history() == []
 
 
 def test_reject_non_calculation():
     history = History()
 
     with pytest.raises(TypeError):
-        history.add("not a calculation")
+        history.add("not a calculation", 15)
 
     assert history.get_history() == []
 
 
-
-def test_remove_from_empty_history():
+def test_clear_history():
     history = History()
 
-    with pytest.raises(IndexError):
-        history.remove(0)
+    first = Calculation(1, 2, Operations.add)
+    second = Calculation(5, 1, Operations.subtract)
+
+    history.add(first, first.get_result())
+    history.add(second, second.get_result())
+
+    history.clear()
 
     assert history.get_history() == []
-
-
-
-
-
-
-def test_remove_middle_entry_keeps_neighbors():
-    history = History()
-
-    first = Add(1, 2)
-    middle = Subtract(5, 1)
-    last = Add(10, 20)
-
-    for calculation in [first, middle, last]:
-        history.add(calculation)
-
-    assert history.remove(1) is middle
-    assert history.get_history() == [first, last]
-
-
-def test_remove_last_entry_keeps_previous_order():
-    history = History()
-
-    first = Add(1, 2)
-    middle = Subtract(5, 1)
-    last = Add(10, 20)
-
-    for calculation in [first, middle, last]:
-        history.add(calculation)
-
-    assert history.remove(2) is last
-    assert history.get_history() == [first, middle]

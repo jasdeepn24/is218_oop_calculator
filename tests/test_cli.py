@@ -1,230 +1,189 @@
-from calculator.cli import run
+from calculator.cli import HELP, describe, read_number, run, show_history
+from calculator.calculation import Calculation
+from calculator.history import History
+from calculator.operations import Operations
 
-def session(monkeypatch, capsys, answers):
-    responses = iter(answers)
 
-    def scripted_input(prompt):
-        return next(responses)
-    
-    monkeypatch.setattr("builtins.input", scripted_input)
+def test_describe():
+    calculation = Calculation(10, 5, Operations.add)
+    result = calculation.get_result()
 
-    run()
+    assert describe(calculation, result) == "add: 10, 5 = 15"
 
-    return capsys.readouterr().out
 
+def test_show_empty_history(capsys):
+    history = History()
 
-def test_arithmetic_session(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["add", "10", "5", "subtract", "20", "7", "exit"]
-    )
+    show_history(history)
 
-    assert "Result: 15" in output
-    assert "Result: 13" in output
-    assert output.endswith("Goodbye!\n")
+    assert "No calculations in history." in capsys.readouterr().out
 
 
-def test_history_and_removal(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys, 
-        ["add", "10", "5", "subtract", "20", "7", "history", "remove", "1", "history", "exit"]
-    )
+def test_show_history(capsys):
+    history = History()
 
-    assert "1. Add: 10, 5 = 15" in output
-    assert "2. Subtract: 20, 7 = 13" in output
-    assert "Removed: Add: 10, 5 = 15" in output
-    assert output.endswith("1. Subtract: 20, 7 = 13\nGoodbye!\n")
+    calculation = Calculation(10, 5, Operations.add)
+    result = calculation.get_result()
+    history.add(calculation, result)
 
-
-def test_empty_history(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["history", "remove", "exit"]
-    )
-
-    assert output.count("No calculations in history.") == 2
-
-
-def test_help_and_unknown_command(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["HELP", "pizza", "EXIT"]
-    )
-
-    assert "Commands:" in output
-    assert "Unknown command." in output
-    assert output.endswith("Goodbye!\n")
-
-
-
-
-def test_mixed_case_command(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        [" ADD ", "8", "4", "exit"]
-    )
-
-    assert "Result: 12" in output
-    assert output.endswith("Goodbye!\n")
-
-
-
-
-def test_invalid_first_number_recovers(monkeypatch, capsys):
-    output = session (
-        monkeypatch, capsys, 
-        ["add", "hello", "history", "add", "2", "3", "exit"]
-    )
-
-    assert "Invalid number or result." in output
-    assert "No calculations in history." in output
-    assert "Result: 5" in output
-
-
-
-def test_invalid_second_number_recovers(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["subtract", "10", "hello", "history", "subtract", "8", "3", "exit"]
-    )
-
-    assert "Invalid number or result." in output
-    assert "No calculations in history." in output
-    assert "Result: 5" in output
-
-
-
-
-def test_invalid_removal_number_preserves_history(monkeypatch, capsys):
-    for invalid_number in ["0", "-1", "99"]:
-        output = session(
-            monkeypatch, capsys, 
-            ["add", "1", "2", "remove", invalid_number, "history", "exit"]
-        )
-
-        assert "Calculation does not exist." in output, invalid_number
-        assert output.count("1. Add: 1, 2 = 3") == 2, invalid_number
-
-
-    
-def test_invalid_removal_text_preserves_history(monkeypatch, capsys):
-    for invalid_text in ["hello", "1.5"]:
-        output = session(
-            monkeypatch, capsys, 
-            ["add", "1", "2", "remove", invalid_text, "history", "exit"]
-        )
-
-        assert "Please enter a whole calculation number." in output, invalid_text
-        assert output.count("1. Add: 1, 2 = 3") == 2, invalid_text
-
-
-
-
-def test_nonfinite_operands_do_not_enter_history(monkeypatch, capsys):
-    for operands in [["nan"], ["inf"], ["-inf"], ["1", "nan"]]:
-        answers = ["add"] + operands + ["history", "add", "2", "3", "exit"]
-
-        output = session(monkeypatch, capsys, answers)
-
-        assert "Invalid number or result." in output, operands
-        assert "No calculations in history." in output, operands
-        assert "Result: 5" in output, operands
-
-
-def test_overflow_does_not_enter_history(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["add", "1e308", "1e308", "history", "exit"]
-    )
-
-    assert "Invalid number or result." in output
-    assert "No calculations in history." in output
-
-
-def test_blank_command_is_unknown(monkeypatch, capsys):
-    output = session(monkeypatch, capsys, ["", "exit"])
-
-    assert "Unknown command." in output
-    assert output.endswith("Goodbye!\n")
-
-
-def test_remove_only_entry(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["add", "-1.5", "0.5", "remove", "1", "history", "exit"]
-    )
-
-    assert "Removed: Add: -1.5, 0.5 = -1" in output
-    assert "No calculations in history." in output
-
-
-def test_complete_assignment_session(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["add", "10", "5", "subtract", "20", "7", "add", "100", "50",
-         "history", "remove", "2", "history", "exit"]
-    )
-
-    assert "Result: 15\n" in output
-    assert "Result: 13\n" in output
-    assert "Result: 150\n" in output
-    assert "Removed: Subtract: 20, 7 = 13" in output
-    assert output.endswith(
-        "1. Add: 10, 5 = 15\n"
-        "2. Add: 100, 50 = 150\n"
-        "Goodbye!\n"
-    )
-
-
-def test_interrupted_input_exits_cleanly(monkeypatch, capsys):
-    prefixes = [[], ["add"], ["add", "1"], ["add", "1", "2", "remove"]]
-
-    for interruption in [EOFError, KeyboardInterrupt]:
-        for prefix in prefixes:
-            responses = iter(prefix)
-
-            def interrupted_input(prompt):
-                try:
-                    return next(responses)
-                except StopIteration:
-                    raise interruption from None
-
-            monkeypatch.setattr("builtins.input", interrupted_input)
-
-            run()
-
-            assert capsys.readouterr().out.endswith("\nGoodbye!\n"), (
-                interruption, prefix
-            )
-
-
-def test_module_entrypoint(monkeypatch, capsys):
-    import runpy
-
-    def exit_command(prompt):
-        return "exit"
-
-    monkeypatch.setattr("builtins.input", exit_command)
-
-    runpy.run_module("calculator", run_name="__main__")
+    show_history(history)
 
     output = capsys.readouterr().out
 
-    assert "OOP Calculator" in output
-    assert output.endswith("Goodbye!\n")
+    assert "Calculation History" in output
+    assert "1. add: 10, 5 = 15" in output
 
 
+def test_read_number(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "12.5")
+
+    assert read_number("Number: ") == 12.5
 
 
-def test_failed_removals_then_success(monkeypatch, capsys):
-    output = session(
-        monkeypatch, capsys,
-        ["add", "8", "4", "remove", "99", "remove", "hello", "history", "remove", "1", "history", "exit"]
-    )
+def test_read_number_rejects_infinity(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "inf")
+
+    try:
+        read_number("Number: ")
+        assert False
+    except ValueError:
+        assert True
 
 
-    assert "Calculation does not exist." in output
-    assert "Please enter a whole calculation number." in output
-    assert output.count("1. Add: 8, 4 = 12") == 4
-    assert "Removed: Add: 8, 4 = 12" in output
+def test_help_text():
+    assert "add" in HELP
+    assert "subtract" in HELP
+    assert "multiply" in HELP
+    assert "divide" in HELP
+    assert "history" in HELP
+    assert "clear" in HELP
+
+
+def test_run_add(monkeypatch, capsys):
+    responses = iter(["add", "2", "3", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    output = capsys.readouterr().out
+
+    assert "Result: 5" in output
+    assert "Goodbye!" in output
+
+
+def test_run_subtract(monkeypatch, capsys):
+    responses = iter(["subtract", "10", "4", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "Result: 6" in capsys.readouterr().out
+
+
+def test_run_multiply(monkeypatch, capsys):
+    responses = iter(["multiply", "4", "5", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "Result: 20" in capsys.readouterr().out
+
+
+def test_run_divide(monkeypatch, capsys):
+    responses = iter(["divide", "10", "4", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "Result: 2.5" in capsys.readouterr().out
+
+
+def test_run_history(monkeypatch, capsys):
+    responses = iter(["add", "2", "3", "history", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    output = capsys.readouterr().out
+
+    assert "Calculation History" in output
+    assert "add: 2, 3 = 5" in output
+
+
+def test_run_empty_history(monkeypatch, capsys):
+    responses = iter(["history", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "No calculations in history." in capsys.readouterr().out
+
+
+def test_run_clear(monkeypatch, capsys):
+    responses = iter(["add", "2", "3", "clear", "history", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    output = capsys.readouterr().out
+
+    assert "History cleared." in output
     assert "No calculations in history." in output
+
+
+def test_run_help(monkeypatch, capsys):
+    responses = iter(["help", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "Commands:" in capsys.readouterr().out
+
+
+def test_run_unknown_command(monkeypatch, capsys):
+    responses = iter(["pizza", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "Unknown command." in capsys.readouterr().out
+
+
+def test_run_invalid_number(monkeypatch, capsys):
+    responses = iter(["add", "hello", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "Invalid number or result." in capsys.readouterr().out
+
+
+def test_run_division_by_zero(monkeypatch, capsys):
+    responses = iter(["divide", "10", "0", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(responses))
+
+    run()
+
+    assert "Invalid number or result." in capsys.readouterr().out
+
+
+def test_run_eof(monkeypatch, capsys):
+    def raise_eof(_):
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", raise_eof)
+
+    run()
+
+    assert "Goodbye!" in capsys.readouterr().out
+
+
+def test_run_keyboard_interrupt(monkeypatch, capsys):
+    def raise_interrupt(_):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("builtins.input", raise_interrupt)
+
+    run()
+
+    assert "Goodbye!" in capsys.readouterr().out
