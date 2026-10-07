@@ -2,6 +2,11 @@
 
 from math import pow, sqrt
 
+from calculator.statistics import (
+    mean,
+    standard_deviation,
+)
+
 
 class Operations:
     @staticmethod
@@ -35,6 +40,19 @@ class Operations:
     @staticmethod
     def sum(*values) -> float:
         if not values:
-            raise ValueError("Enter at least one value.")
+            raise ValueError(
+                "Enter at least one value."
+            )
 
         return sum(values)
+
+    @staticmethod
+    def mean(*values) -> float:
+        return mean(values)
+
+    @staticmethod
+    def stddev(*values, ddof=1) -> float:
+        return standard_deviation(
+            values,
+            ddof=ddof,
+        )

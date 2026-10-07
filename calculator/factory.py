@@ -15,6 +15,8 @@ class CalculationFactory:
         "sqrt": Operations.sqrt,
         "power": Operations.power,
         "sum": Operations.sum,
+        "mean": Operations.mean,
+        "stddev": Operations.stddev,
     }
 
     operand_counts = {
@@ -28,7 +30,8 @@ class CalculationFactory:
     }
 
     allowed_options = {
-        "power": {"exponent"}
+        "power": {"exponent"},
+        "stddev": {"ddof"},
     }
 
     @staticmethod
@@ -55,3 +58,4 @@ class CalculationFactory:
             raise ValueError(f"{name} requires exactly {count} value(s).")
 
         return Calculation(values, operation, **converted_options)
+    

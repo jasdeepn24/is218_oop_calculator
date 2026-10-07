@@ -11,6 +11,8 @@ from calculator.factory import CalculationFactory
         ("subtract", [2, 3], -1),
         ("multiply", [2, 3], 6),
         ("divide", [7, 2], 3.5),
+        ("mean", [2, 4, 6], 4),
+        ("stddev", [2, 4, 6], 2),   
     ],
 )
 def test_factory_configures_calculation(name, values, expected):
@@ -48,6 +50,12 @@ def test_factory_does_not_execute():
         ("square", [3], {}, 9),
         ("sqrt", [9], {}, 3),
         ("power", [3], {"exponent": "4"}, 81),
+        (
+            "stddev",
+            [2, 4, 6],
+            {"ddof": 0},
+            (8 / 3) ** 0.5,
+        ),
     ],
 )
 def test_argument_counts_and_named_options(name, values, options, expected):

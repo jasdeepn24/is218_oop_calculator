@@ -128,3 +128,82 @@ def test_unary_and_options_session(
         "power 3.0 exponent=4.0 = 81.0000"
         in output
     )
+
+
+def test_csv_and_manual_session(
+    monkeypatch,
+    capsys,
+    tmp_path,
+):
+    monkeypatch.chdir(tmp_path)
+
+    (
+        tmp_path / "values.csv"
+    ).write_text(
+        "value\n"
+        "10\n"
+        "20\n"
+        "30\n"
+        "40\n"
+        "50\n"
+    )
+
+    answers = iter([
+        "stddev 10 20 30 40 50",
+        "csv stddev values.csv",
+        "exit",
+    ])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda prompt: next(answers),
+    )
+
+    run()
+
+    assert (
+        capsys.readouterr()
+        .out.count(
+            "Result: 15.8114"
+        )
+        == 2
+    )
+
+
+
+def test_recovers_from_csv_failures(
+    monkeypatch,
+    capsys,
+    tmp_path,
+):
+    monkeypatch.chdir(tmp_path)
+
+    (
+        tmp_path / "empty.csv"
+    ).write_text("")
+
+    (
+        tmp_path / "bad.csv"
+    ).write_text(
+        'value\n"unterminated\n'
+    )
+
+    answers = iter([
+        "csv mean missing.csv",
+        "csv mean empty.csv",
+        "csv mean bad.csv",
+        "add 1 2",
+        "exit",
+    ])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda prompt: next(answers),
+    )
+
+    run()
+
+    output = capsys.readouterr().out
+
+    assert output.count("Error:") == 3
+    assert "Result: 3.0000" in output
